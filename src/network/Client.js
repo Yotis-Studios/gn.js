@@ -35,6 +35,10 @@ class Client extends EventEmitter {
     }
 
     send(packet) {
+        if (!this.ws) {
+            console.error('Cannot send packet, WebSocket is null');
+            return;
+        }
         if (this.ws.readyState !== WebSocket.OPEN) {
             console.error('Cannot send packet, WebSocket is not open');
             return;
