@@ -1,6 +1,7 @@
 const WebSocket = require('ws');
 const EventEmitter = require('events');
 const Packet = require('./Packet');
+const Buffer = require('buffer').Buffer;
 
 class Client extends EventEmitter {
     constructor() {

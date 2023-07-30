@@ -48,14 +48,14 @@ function createBufferFromData(data) {
             if (buffer[buffer.length - 1] !== 0) {
                 buffer = Buffer.concat([buffer, Buffer.from([0])]);
             }
-            const strLen = buffer.length;
-            const strLenBuffer = Buffer.alloc(2);
+            var strLen = buffer.length;
+            var strLenBuffer = Buffer.alloc(2);
             strLenBuffer.writeUInt16LE(strLen, 0);
             buffer = Buffer.concat([strLenBuffer, buffer]);
             break;
         case 'buffer':
-            const bufLen = buffer.length;
-            const bufLenBuffer = Buffer.alloc(2);
+            var bufLen = buffer.length;
+            var bufLenBuffer = Buffer.alloc(2);
             bufLenBuffer.writeUInt8(bufLen, 0);
             buffer = Buffer.concat([bufLenBuffer, buffer]);
             break;
@@ -102,6 +102,7 @@ function determineType(data) {
             if (data instanceof Buffer) {
                 return 10; // buffer
             }
+            break;
         default:
             return 11; // undefined
     }  
@@ -140,13 +141,13 @@ function parseDataFromBuffer(buffer, index) {
             data = buffer.readDoubleLE(index);
             break;
         case 'string':
-            const strLen = buffer.readUInt16LE(index);
+            var strLen = buffer.readUInt16LE(index);
             index += 2;
             data = buffer.toString('utf8', index, index + strLen);
             size = strLen + 2;
             break;
         case 'buffer':
-            const bufLen = buffer.readUInt8(index);
+            var bufLen = buffer.readUInt8(index);
             index++;
             data = buffer.slice(index, index + bufLen);
             size = bufLen + 1;

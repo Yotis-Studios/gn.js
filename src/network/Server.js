@@ -2,6 +2,7 @@ const uWS = require('uWebSockets.js');
 const EventEmitter = require('events');
 const Packet = require('./Packet');
 const Connection = require('./Connection');
+const Buffer = require('buffer').Buffer;
 
 class Server extends EventEmitter {
     constructor(port) {

@@ -19,5 +19,8 @@
   "dependencies": {
     "uWebSockets.js": "github:uNetworking/uWebSockets.js#v20.31.0",
     "ws": "^8.13.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.46.0"
   }
 }
