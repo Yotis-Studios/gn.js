@@ -74,15 +74,15 @@ class Server extends EventEmitter {
 
     broadcast(packet, exclude = null) {
         const data = packet.build();
-        for (const ws of this.connections) {
-            if (ws === exclude) continue;
-            ws.send(data);
+        for (const conn of this.connections) {
+            if (conn === exclude) continue;
+            conn.send(data);
         }
     }
 
     close() {
-        for (const ws of this.connections) {
-            ws.end(1000, 'Server closed');
+        for (const conn of this.connections) {
+            conn.ws.end(1000, 'Server closed');
         }
         this.server.close(() => {
             console.log(`Server on port ${this.port} closed`);

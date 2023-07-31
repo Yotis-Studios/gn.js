@@ -1,4 +1,5 @@
 const EventEmitter = require('events');
+const Packet = require('./Packet');
 
 class Connection extends EventEmitter {
     constructor(ws, server) {
@@ -8,7 +9,7 @@ class Connection extends EventEmitter {
     }
 
     send(packet) {
-        const data = packet.build();
+        const data = packet instanceof Packet ? packet.build() : packet; // build a packet or send as raw data
         this.ws.send(data);
     }
 
