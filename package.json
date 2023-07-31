@@ -1,5 +1,5 @@
 {
-  "name": "gn",
+  "name": "gn-js",
   "version": "0.0.1",
   "description": "Websocket framework for GameMaker and Node.js",
   "main": "src/index.js",

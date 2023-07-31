@@ -15,7 +15,7 @@
 You can install `gn.js` using npm:
 
 ```bash
-npm install gn.js
+npm install gn-js
 ```
 
 ## API
