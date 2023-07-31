@@ -52,6 +52,10 @@ class Server extends EventEmitter {
     listen(port) {
         this.port = port;
         this.server = new WebSocket.Server({ port: port });
+        this.server.on('listening', () => {
+            console.log(`Server listening on port ${port}`);
+            this.emit('ready');
+        });
         this.server.on('connection', (ws) => {
             this.handleConnect(ws);
             ws.on('close', (code, message) => {

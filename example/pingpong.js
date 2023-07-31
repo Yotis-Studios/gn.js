@@ -13,7 +13,9 @@ const pongPacket = new Packet(1);
 pongPacket.add('Pong');
 
 server.on('ready', () => {  
-    client.connect('localhost', port);
+    setTimeout(() => {
+        client.connect('localhost', port);
+    }, 1000);
 });
 
 client.on('connect', () => {
@@ -44,7 +46,3 @@ server.on('packet', (connection, packet) => {
 });
 
 server.listen(port);
-
-setTimeout(() => {
-    client.connect('localhost', port);
-}, 1000);
