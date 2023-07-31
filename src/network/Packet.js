@@ -2,8 +2,8 @@ const Buffer = require('buffer').Buffer;
 const gmConvert = require('../util/gmConvert');
 
 class Packet {
-    constructor(netID) {
-        this.netID = netID;
+    constructor(netId) {
+        this.netId = netId;
         this.data = [];
     }
 
@@ -20,7 +20,7 @@ class Packet {
     }
 
     load(data) {
-        this.netID = data.readUInt16LE(0);
+        this.netId = data.readUInt16LE(0);
 
         if (data.length > 2) {
             let i = 2;
@@ -35,7 +35,7 @@ class Packet {
     build() {
         let size = 2; // 2 bytes for netID
         const netIDBuffer = Buffer.alloc(2);
-        netIDBuffer.writeUInt16LE(this.netID);
+        netIDBuffer.writeUInt16LE(this.netId);
 
         // iterate through data, convert to buffers, and add to array, while keeping track of size
         const dataBuffers = [];
