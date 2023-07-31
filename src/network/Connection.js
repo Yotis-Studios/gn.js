@@ -22,8 +22,7 @@ class Connection extends EventEmitter {
     }
 
     kick() {
-        if (this.ws.readyState !== 1) return; // if the websocket is not open, don't try to close it
-        this.ws.end(1000, 'Kicked');
+        this.ws.close();
     }
 }
 

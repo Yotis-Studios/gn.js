@@ -17,7 +17,6 @@
   },
   "homepage": "https://github.com/Yotis-Studios/gn.js#readme",
   "dependencies": {
-    "uWebSockets.js": "github:uNetworking/uWebSockets.js#v20.31.0",
     "ws": "^8.13.0"
   },
   "devDependencies": {

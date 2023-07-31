@@ -4,7 +4,7 @@ const Packet = require('../src/network/Packet');
 
 const port = 3000;
 
-const server = new Server(3000);
+const server = new Server();
 const client = new Client();
 
 let i = 0;
@@ -38,4 +38,4 @@ client.on('packet', (packet) => {
     console.log('Client received packet: ' + packet.data);
 });
 
-server.listen();
+server.listen(port);

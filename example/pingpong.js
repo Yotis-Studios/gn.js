@@ -4,7 +4,7 @@ const Packet = require('../src/network/Packet');
 
 const port = 3000;
 
-const server = new Server(3000);
+const server = new Server();
 const client = new Client();
 
 const pingPacket = new Packet(1);
@@ -43,7 +43,7 @@ server.on('packet', (connection, packet) => {
     connection.send(pongPacket);
 });
 
-server.listen();
+server.listen(port);
 
 setTimeout(() => {
     client.connect('localhost', port);

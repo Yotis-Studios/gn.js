@@ -1,4 +1,4 @@
-const uWS = require('uWebSockets.js');
+const WebSocket = require('ws');
 const EventEmitter = require('events');
 const Packet = require('./Packet');
 const Connection = require('./Connection');
@@ -9,21 +9,7 @@ class Server extends EventEmitter {
         super();
         this.port = null;
         this.connections = new Set();
-
-        this.server = uWS.App().ws('/*', {
-            /* Options */
-            compression: 0,
-            maxPayloadLength: 1024,
-            idleTimeout: 32,
-
-            /* Handlers */
-            open: this.handleConnect.bind(this),
-            message: this.handleData.bind(this),
-            drain: (ws) => {
-                console.log('WebSocket backpressure: ' + ws.getBufferedAmount());
-            },
-            close: this.handleDisconnect.bind(this)
-        });
+        this.server = null;
     }
 
     handleConnect(ws) {
@@ -65,13 +51,15 @@ class Server extends EventEmitter {
 
     listen(port) {
         this.port = port;
-        this.server.listen(this.port, (token) => {
-            if (token) {
-                console.log('Listening to port ' + this.port);
-                this.emit('ready');
-            } else {
-                console.error('Failed to listen to port ' + this.port);
-            }
+        this.server = new WebSocket.Server({ port: port });
+        this.server.on('connection', (ws) => {
+            this.handleConnect(ws);
+            ws.on('close', (code, message) => {
+                this.handleDisconnect(ws, code, message);
+            });
+            ws.on('message', (message, isBinary) => {
+                this.handleData(ws, message, isBinary);
+            });
         });
     }
 
@@ -85,7 +73,7 @@ class Server extends EventEmitter {
 
     close() {
         for (const conn of this.connections) {
-            conn.ws.end(1000, 'Server closed');
+            conn.kick();
         }
         this.server.close(() => {
             console.log(`Server on port ${this.port} closed`);
