@@ -5,9 +5,9 @@ const Connection = require('./Connection');
 const Buffer = require('buffer').Buffer;
 
 class Server extends EventEmitter {
-    constructor(port) {
+    constructor() {
         super();
-        this.port = port;
+        this.port = null;
         this.connections = new Set();
 
         this.server = uWS.App().ws('/*', {
@@ -60,7 +60,8 @@ class Server extends EventEmitter {
         this.emit('packet', connection, packet);
     }
 
-    listen() {
+    listen(port) {
+        this.port = port;
         this.server.listen(this.port, (token) => {
             if (token) {
                 console.log('Listening to port ' + this.port);
