@@ -7,7 +7,6 @@
 - Event-driven API for handling connections, disconnections, and messages.
 - Efficient binary data handling with the `Packet` class.
 - Support for both server-side and client-side networking.
-- Built with `uWebSockets.js` for high-performance WebSocket communication.
 - Designed for compatibility with GameMaker.
 
 ## Installation
