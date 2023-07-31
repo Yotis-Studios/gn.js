@@ -6,6 +6,10 @@ class Connection extends EventEmitter {
         super();
         this.ws = ws;
         this.server = server;
+
+        // websocket fields
+        this.code = null;
+        this.message = null;
     }
 
     send(packet) {

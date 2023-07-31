@@ -33,8 +33,11 @@ class Server extends EventEmitter {
     }
 
     handleDisconnect(ws, code, message) {
-        this.connections.delete(ws);
-        this.emit('disconnect', ws, code, message);
+        const connection = this.getConnectionByWebSocket(ws);
+        connection.code = code;
+        connection.message = message;
+        this.connections.delete(connection);
+        this.emit('disconnect', connection);
     }
 
     handleData(ws, message, isBinary) {
