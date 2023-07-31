@@ -9,7 +9,7 @@ class Packet {
 
     add(data) {
         if (Array.isArray(data)) {
-            this.data.concat(data);
+            this.data = this.data.concat(data);
         } else {
             this.data.push(data);
         }
