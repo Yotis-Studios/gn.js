@@ -101,6 +101,10 @@ class Server extends EventEmitter {
             ws.on('message', (message, isBinary) => {
                 this.handleData(ws, message, isBinary);
             });
+            ws.on('error', (err) => {
+                console.error(err);
+                this.emit('error', err, ws);
+            });
         });
         this.server.on('error', (err) => {
             console.error(err);
