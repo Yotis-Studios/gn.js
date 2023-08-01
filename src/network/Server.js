@@ -1,3 +1,4 @@
+const http = require('http');
 const WebSocket = require('ws');
 const EventEmitter = require('events');
 const Packet = require('./Packet');
@@ -16,9 +17,10 @@ class Server extends EventEmitter {
      */
     constructor() {
         super();
-        this.port = null;
         this.connections = new Set();
         this.server = null;
+        this.port = null;
+        this.httpServer = null;
     }
 
     /**
@@ -82,13 +84,22 @@ class Server extends EventEmitter {
 
     /**
      * @description Starts the server
-     * @param {number} port The port to listen on
+     * @param {number|http.Server} portOrHttpServer The port to listen on or an http.Server to use
      * @returns {void}
      * @fires Server#ready
      */
-    listen(port) {
+    listen(portOrHttpServer) {
+        let port;
+        // If an HTTP server is provided, use it
+        if (portOrHttpServer instanceof http.Server) {
+            this.server = new WebSocket.Server({ server: portOrHttpServer });
+            port = portOrHttpServer.address().port;
+            this.httpServer = portOrHttpServer;
+        } else {
+            this.server = new WebSocket.Server({ port: portOrHttpServer });
+            port = portOrHttpServer;
+        }
         this.port = port;
-        this.server = new WebSocket.Server({ port: port });
         this.server.on('listening', () => {
             console.log(`Server listening on port ${port}`);
             this.emit('ready');
