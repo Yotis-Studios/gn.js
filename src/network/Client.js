@@ -23,6 +23,7 @@ class Client extends EventEmitter {
      * @fires Client#connect
      * @fires Client#disconnect
      * @fires Client#packet
+     * @fires Client#error
      */
     connect(address, port) {
         const url = 'ws://' + address + ':' + port;
@@ -47,6 +48,10 @@ class Client extends EventEmitter {
             this.connected = false;
             this.emit('disconnect');
         };
+        this.ws.onerror = (error) => {
+            console.error(error);
+            this.emit('error', error);
+        }
     }
 
     /**

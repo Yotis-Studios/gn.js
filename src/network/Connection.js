@@ -30,7 +30,12 @@ class Connection extends EventEmitter {
      */
     send(packet) {
         const data = packet instanceof Packet ? packet.build() : packet; // build a packet or send as raw data
-        this.ws.send(data);
+        try {
+            this.ws.send(data);
+        } catch (error) {
+            console.error(error);
+            this.emit('error', error);
+        }
     }
 
     /**
