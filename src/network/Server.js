@@ -62,12 +62,14 @@ class Server extends EventEmitter {
     handleData(ws, message, isBinary) {
         if (!isBinary) {
             console.error('Received non-binary data: ' + message);
+            this.emit('error', 'Received non-binary data: ' + message, ws);
             return;
         }
         // find the connection that sent this data
         const connection = this.getConnectionByWebSocket(ws);
         if (!connection) {
             console.error('Received data from unknown connection');
+            this.emit('error', 'Received data from unknown connection', ws);
             return;
         }
         // convert the message to a buffer
