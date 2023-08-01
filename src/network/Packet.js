@@ -1,12 +1,20 @@
 const Buffer = require('buffer').Buffer;
 const gmConvert = require('../util/gmConvert');
 
+/**
+ * Represents a packet of data to be sent over the network.
+ */
 class Packet {
     constructor(netId) {
         this.netId = netId;
         this.data = [];
     }
 
+    /**
+     * Push data to the packet
+     * @param {any} data
+     * @returns {void}
+     */
     add(data) {
         if (Array.isArray(data)) {
             this.data = this.data.concat(data);
@@ -15,10 +23,20 @@ class Packet {
         }
     }
 
+    /**
+     * Access data at index i from the packet
+     * @param {number} i
+     * @returns {any}
+     */
     get(i) {
         return this.data[i];
     }
 
+    /**
+     * Loads raw byte data into a packet
+     * @param {Buffer} data
+     * @returns {void}
+     */
     load(data) {
         this.netId = data.readUInt16LE(0);
 
@@ -32,6 +50,10 @@ class Packet {
         }
     }
 
+    /**
+     * Serializes the packet data into a buffer ready to be sent over the network
+     * @returns {Buffer}
+     */
     build() {
         let size = 2; // 2 bytes for netID
         const netIDBuffer = Buffer.alloc(2);

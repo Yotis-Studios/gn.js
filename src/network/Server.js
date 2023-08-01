@@ -4,7 +4,16 @@ const Packet = require('./Packet');
 const Connection = require('./Connection');
 const Buffer = require('buffer').Buffer;
 
+/**
+ * @class Server
+ * @extends EventEmitter
+ * @description A server that listens for connections and broadcasts packets to all connections
+ */
 class Server extends EventEmitter {
+    /**
+     * @description Creates an instance of Server
+     * @constructor
+     */
     constructor() {
         super();
         this.port = null;
@@ -12,12 +21,26 @@ class Server extends EventEmitter {
         this.server = null;
     }
 
+    /**
+     * @description Handles a new connection
+     * @param {WebSocket} ws The WebSocket of the connection
+     * @returns {void}
+     * @fires Server#connect
+     */
     handleConnect(ws) {
         const connection = new Connection(ws, this);
         this.connections.add(connection);
         this.emit('connect', connection);
     }
 
+    /**
+     * @description Handles a disconnection
+     * @param {WebSocket} ws The WebSocket of the connection
+     * @param {number} code The close code
+     * @param {Buffer} message WS reason for closing
+     * @returns {void}
+     * @fires Server#disconnect
+     */
     handleDisconnect(ws, code, message) {
         const connection = this.getConnectionByWebSocket(ws);
         connection.code = code;
@@ -26,6 +49,14 @@ class Server extends EventEmitter {
         this.emit('disconnect', connection);
     }
 
+    /**
+     * @description Handles data from a connection
+     * @param {WebSocket} ws The WebSocket of the connection
+     * @param {Buffer} message The data received
+     * @param {boolean} isBinary Whether the data is binary
+     * @returns {void}
+     * @fires Server#packet
+     */
     handleData(ws, message, isBinary) {
         if (!isBinary) {
             console.error('Received non-binary data: ' + message);
@@ -49,6 +80,12 @@ class Server extends EventEmitter {
         this.emit('packet', connection, packet);
     }
 
+    /**
+     * @description Starts the server
+     * @param {number} port The port to listen on
+     * @returns {void}
+     * @fires Server#ready
+     */
     listen(port) {
         this.port = port;
         this.server = new WebSocket.Server({ port: port });
@@ -67,6 +104,12 @@ class Server extends EventEmitter {
         });
     }
 
+    /**
+     * @description Broadcasts a packet to all connections
+     * @param {Packet} packet The packet to broadcast
+     * @param {Connection} [exclude=null] The connection to exclude from the broadcast
+     * @returns {void}
+     */
     broadcast(packet, exclude = null) {
         const data = packet.build();
         for (const conn of this.connections) {
@@ -75,6 +118,10 @@ class Server extends EventEmitter {
         }
     }
 
+    /**
+     * @description Closes the server
+     * @returns {void}
+     */
     close() {
         for (const conn of this.connections) {
             conn.kick();
@@ -84,6 +131,11 @@ class Server extends EventEmitter {
         });
     }
 
+    /**
+     * @description Gets a connection by its WebSocket
+     * @param {WebSocket} ws The WebSocket of the connection
+     * @returns {Connection|null} The connection or null if not found
+     */
     getConnectionByWebSocket(ws) {
         for (const connection of this.connections) {
             if (connection.ws === ws) return connection;

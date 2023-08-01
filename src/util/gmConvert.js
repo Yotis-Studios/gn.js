@@ -3,6 +3,11 @@ const Buffer = require('buffer').Buffer;
 const typeMap = ['u8','u16','u32','s8','s16','s32','f16','f32','f64','string','buffer','undefined'];
 const sizeMap = {u8: 1, u16: 2, u32: 4, s8: 1, s16: 2, s32: 4, f16: 2, f32: 4, f64: 8, undefined: 0};
 
+/**
+ * Get a buffer of binary data from provided data
+ * @param {any} data The data to convert to a buffer
+ * @returns {Buffer} The buffer of binary data
+ */
 function createBufferFromData(data) {
     const type = determineType(data);
     const typeName = typeMap[type];
@@ -67,6 +72,11 @@ function createBufferFromData(data) {
     return finalBuffer;
 }
 
+/**
+ * Determines the binary data type of the provided data
+ * @param {any} data The data to determine the type of
+ * @returns {number} The type of the data (indexed in typeMap)
+ */
 function determineType(data) {
     switch (typeof data) {
         case 'number':
@@ -108,6 +118,12 @@ function determineType(data) {
     }  
 }
 
+/**
+ * Used for parsing binary data from a packet buffer
+ * @param {Buffer} buffer binary data
+ * @param {number} index index to start reading from
+ * @returns {object} object with data and size (number of bytes read)
+ */
 function parseDataFromBuffer(buffer, index) {
     const type = buffer.readUInt8(index);
     const typeName = typeMap[type];
