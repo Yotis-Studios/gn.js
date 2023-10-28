@@ -165,7 +165,7 @@ function parseDataFromBuffer(buffer, index) {
         case 'buffer':
             var bufLen = buffer.readUInt8(index);
             index++;
-            data = buffer.slice(index, index + bufLen);
+            data = buffer.subarray(index, index + bufLen);
             size = bufLen + 1;
             break;
         case 'undefined':
