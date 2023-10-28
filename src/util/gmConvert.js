@@ -59,10 +59,10 @@ function createBufferFromData(data) {
             buffer = Buffer.concat([strLenBuffer, buffer]);
             break;
         case 'buffer':
-            var bufLen = buffer.length;
-            var bufLenBuffer = Buffer.alloc(2);
+            var bufLen = data.length;
+            var bufLenBuffer = Buffer.alloc(1);
             bufLenBuffer.writeUInt8(bufLen, 0);
-            buffer = Buffer.concat([bufLenBuffer, buffer]);
+            buffer = Buffer.concat([bufLenBuffer, data]);
             break;
         case 'undefined':
             buffer = Buffer.alloc(0);
