@@ -17,7 +17,8 @@ class Server extends EventEmitter {
      */
     constructor() {
         super();
-        this.connections = new Set();
+        // Use Map for O(1) connection lookup by WebSocket
+        this.connections = new Map();
         this.server = null;
         this.port = null;
         this.httpServer = null;
@@ -31,7 +32,7 @@ class Server extends EventEmitter {
      */
     handleConnect(ws) {
         const connection = new Connection(ws, this);
-        this.connections.add(connection);
+        this.connections.set(ws, connection);
         this.emit('connect', connection);
     }
 
@@ -45,9 +46,14 @@ class Server extends EventEmitter {
      */
     handleDisconnect(ws, code, message) {
         const connection = this.getConnectionByWebSocket(ws);
+        if (!connection) {
+            console.error('Attempted to disconnect unknown connection');
+            this.emit('error', 'Attempted to disconnect unknown connection', ws);
+            return;
+        }
         connection.code = code;
         connection.message = message;
-        this.connections.delete(connection);
+        this.connections.delete(ws);
         this.emit('disconnect', connection);
     }
 
@@ -74,8 +80,24 @@ class Server extends EventEmitter {
         }
         // convert the message to a buffer
         message = Buffer.from(message);
+
+        // validate minimum message length
+        if (message.length < 2) {
+            console.error('Received malformed packet (too short)');
+            this.emit('error', 'Received malformed packet (too short)', ws);
+            return;
+        }
+
         // get packet size from message
         const size = message.readUInt16LE(0);
+
+        // validate packet size to prevent buffer overflow
+        if (size > message.length - 2) {
+            console.error(`Received malformed packet (claimed size ${size} exceeds actual size ${message.length - 2})`);
+            this.emit('error', `Received malformed packet (claimed size ${size} exceeds actual size ${message.length - 2})`, ws);
+            return;
+        }
+
         // make new packet and load the net id and data limited to the provided size
         const packet = new Packet();
         packet.load(message.subarray(2, 2+size));
@@ -95,7 +117,8 @@ class Server extends EventEmitter {
         // If an HTTP server is provided, use it
         if (portOrHttpServer instanceof http.Server) {
             this.server = new WebSocket.Server({ server: portOrHttpServer });
-            port = portOrHttpServer.address().port;
+            const address = portOrHttpServer.address();
+            port = address ? address.port : null;
             this.httpServer = portOrHttpServer;
         } else {
             this.server = new WebSocket.Server({ port: portOrHttpServer });
@@ -133,7 +156,7 @@ class Server extends EventEmitter {
      */
     broadcast(packet, exclude = null) {
         const data = packet.build();
-        for (const conn of this.connections) {
+        for (const conn of this.connections.values()) {
             if (conn === exclude) continue;
             conn.send(data);
         }
@@ -144,7 +167,7 @@ class Server extends EventEmitter {
      * @returns {void}
      */
     close() {
-        for (const conn of this.connections) {
+        for (const conn of this.connections.values()) {
             conn.kick();
         }
         this.server.close(() => {
@@ -158,10 +181,7 @@ class Server extends EventEmitter {
      * @returns {Connection|null} The connection or null if not found
      */
     getConnectionByWebSocket(ws) {
-        for (const connection of this.connections) {
-            if (connection.ws === ws) return connection;
-        }
-        return null;
+        return this.connections.get(ws) || null;
     }
 }
 

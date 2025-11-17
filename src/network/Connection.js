@@ -33,8 +33,12 @@ class Connection extends EventEmitter {
         try {
             this.ws.send(data);
         } catch (error) {
-            console.error(error);
+            console.error('Error sending data to connection:', error);
             this.emit('error', error);
+            // Also emit on server for centralized error handling
+            if (this.server) {
+                this.server.emit('error', error, this.ws);
+            }
         }
     }
 

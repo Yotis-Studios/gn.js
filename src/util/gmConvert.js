@@ -42,10 +42,17 @@ function createBufferFromData(data) {
             buffer.writeInt32LE(data, 0);
             break;
         case 'f16':
-        case 'f32':
-        case 'f64':
-            buffer = Buffer.alloc(typeSize); // 4 or 8
+            // f16 is not natively supported in Node.js, treat as f32
+            buffer = Buffer.alloc(4);
             buffer.writeFloatLE(data, 0);
+            break;
+        case 'f32':
+            buffer = Buffer.alloc(typeSize); // 4
+            buffer.writeFloatLE(data, 0);
+            break;
+        case 'f64':
+            buffer = Buffer.alloc(typeSize); // 8
+            buffer.writeDoubleLE(data, 0);
             break;
         case 'string':
             buffer = Buffer.from(data, 'utf8');
@@ -53,15 +60,16 @@ function createBufferFromData(data) {
             if (buffer[buffer.length - 1] !== 0) {
                 buffer = Buffer.concat([buffer, Buffer.from([0])]);
             }
-            var strLen = buffer.length;
-            var strLenBuffer = Buffer.alloc(2);
+            const strLen = buffer.length;
+            const strLenBuffer = Buffer.alloc(2);
             strLenBuffer.writeUInt16LE(strLen, 0);
             buffer = Buffer.concat([strLenBuffer, buffer]);
             break;
         case 'buffer':
-            var bufLen = data.length;
-            var bufLenBuffer = Buffer.alloc(1);
-            bufLenBuffer.writeUInt8(bufLen, 0);
+            const bufLen = data.length;
+            // Use UInt16 to support buffers up to 65535 bytes instead of just 255
+            const bufLenBuffer = Buffer.alloc(2);
+            bufLenBuffer.writeUInt16LE(bufLen, 0);
             buffer = Buffer.concat([bufLenBuffer, data]);
             break;
         case 'undefined':
@@ -112,10 +120,11 @@ function determineType(data) {
             if (data instanceof Buffer) {
                 return 10; // buffer
             }
-            break;
+            // Fall through to default for null or other objects
+            return 11; // undefined
         default:
             return 11; // undefined
-    }  
+    }
 }
 
 /**
@@ -157,16 +166,22 @@ function parseDataFromBuffer(buffer, index) {
             data = buffer.readDoubleLE(index);
             break;
         case 'string':
-            var strLen = buffer.readUInt16LE(index);
+            const strLen = buffer.readUInt16LE(index);
             index += 2;
-            data = buffer.toString('utf8', index, index + strLen);
+            // Validate that the string has a null terminator
+            if (strLen > 0 && buffer[index + strLen - 1] !== 0) {
+                console.warn('Warning: String does not have null terminator');
+            }
+            // Remove null terminator from string (if present)
+            const endIndex = (strLen > 0 && buffer[index + strLen - 1] === 0) ? index + strLen - 1 : index + strLen;
+            data = buffer.toString('utf8', index, endIndex);
             size = strLen + 2;
             break;
         case 'buffer':
-            var bufLen = buffer.readUInt8(index);
-            index++;
+            const bufLen = buffer.readUInt16LE(index);
+            index += 2;
             data = buffer.subarray(index, index + bufLen);
-            size = bufLen + 1;
+            size = bufLen + 2;
             break;
         case 'undefined':
             data = undefined;

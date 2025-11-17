@@ -19,14 +19,16 @@ class Client extends EventEmitter {
      * @description Connects to a server
      * @param {string} address The address of the server
      * @param {number} port The port of the server
+     * @param {boolean} [secure=false] Whether to use secure WebSocket (wss://)
      * @returns {void}
      * @fires Client#connect
      * @fires Client#disconnect
      * @fires Client#packet
      * @fires Client#error
      */
-    connect(address, port) {
-        const url = 'ws://' + address + ':' + port;
+    connect(address, port, secure = false) {
+        const protocol = secure ? 'wss://' : 'ws://';
+        const url = protocol + address + ':' + port;
         this.ws = new WebSocket(url);
         this.ws.binaryType = 'arraybuffer';
         this.ws.onopen = () => {
@@ -36,8 +38,24 @@ class Client extends EventEmitter {
         this.ws.onmessage = (event) => {
             // convert the message to a buffer
             const data = Buffer.from(event.data);
+
+            // validate minimum message length
+            if (data.length < 2) {
+                console.error('Received malformed packet (too short)');
+                this.emit('error', new Error('Received malformed packet (too short)'));
+                return;
+            }
+
             // get packet size from message
             const size = data.readUInt16LE(0);
+
+            // validate packet size to prevent buffer overflow
+            if (size > data.length - 2) {
+                console.error(`Received malformed packet (claimed size ${size} exceeds actual size ${data.length - 2})`);
+                this.emit('error', new Error(`Received malformed packet (claimed size ${size} exceeds actual size ${data.length - 2})`));
+                return;
+            }
+
             // make new packet and load the net id and data limited to the provided size
             const packet = new Packet();
             packet.load(data.subarray(2, 2+size));
@@ -77,7 +95,9 @@ class Client extends EventEmitter {
      * @returns {void}
      */
     disconnect() {
-        this.ws.end(1000, 'Client closed');
+        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+            this.ws.close(1000, 'Client closed');
+        }
     }
 
     /**
