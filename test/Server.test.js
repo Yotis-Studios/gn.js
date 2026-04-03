@@ -55,6 +55,7 @@ describe('Server', () => {
             const spy = jest.spyOn(console, 'error').mockImplementation();
             server.handleData({}, 'text data', false);
             expect(errors.length).toBe(1);
+            expect(errors[0]).toBe('Received non-binary data from client');
             spy.mockRestore();
         });
 
@@ -156,6 +157,58 @@ describe('Server', () => {
 
             expect(ws1.send).not.toHaveBeenCalled();
             expect(ws2.send).toHaveBeenCalledTimes(1);
+        });
+    });
+
+    describe('close', () => {
+        test('does not crash when called before listen', () => {
+            const server = new Server();
+            expect(() => server.close()).not.toThrow();
+        });
+    });
+
+    describe('handleData edge cases', () => {
+        test('ignores packet with zero size field', () => {
+            const server = new Server();
+            const ws = { send: jest.fn(), close: jest.fn() };
+            server.handleConnect(ws);
+
+            const packets = [];
+            server.on('packet', (conn, pkt) => packets.push(pkt));
+
+            // zero size field should be skipped
+            const buf = Buffer.alloc(4);
+            buf.writeUInt16LE(0, 0); // size = 0
+            server.handleData(ws, buf, true);
+
+            expect(packets.length).toBe(0);
+        });
+
+        test('stops parsing when size exceeds remaining data', () => {
+            const server = new Server();
+            const ws = { send: jest.fn(), close: jest.fn() };
+            server.handleConnect(ws);
+
+            const packets = [];
+            server.on('packet', (conn, pkt) => packets.push(pkt));
+
+            // size field says 100 bytes but only 2 bytes of data follow
+            const buf = Buffer.alloc(4);
+            buf.writeUInt16LE(100, 0);
+            buf.writeUInt16LE(1, 2);
+            server.handleData(ws, buf, true);
+
+            expect(packets.length).toBe(0);
+        });
+
+        test('does not leak client data in error messages', () => {
+            const server = new Server();
+            const errors = [];
+            server.on('error', (msg) => errors.push(msg));
+            const spy = jest.spyOn(console, 'error').mockImplementation();
+            server.handleData({}, '<script>alert("xss")</script>', false);
+            expect(errors[0]).not.toContain('<script>');
+            spy.mockRestore();
         });
     });
 });

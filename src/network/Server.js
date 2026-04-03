@@ -62,8 +62,8 @@ class Server extends EventEmitter {
      */
     handleData(ws, message, isBinary) {
         if (!isBinary) {
-            console.error('Received non-binary data: ' + message);
-            this.emit('error', 'Received non-binary data: ' + message, ws);
+            console.error('Received non-binary data from client');
+            this.emit('error', 'Received non-binary data from client', ws);
             return;
         }
         // find the connection that sent this data
@@ -150,9 +150,11 @@ class Server extends EventEmitter {
         for (const conn of this.connections) {
             conn.kick();
         }
-        this.server.close(() => {
-            console.log(`Server on port ${this.port} closed`);
-        });
+        if (this.server) {
+            this.server.close(() => {
+                console.log(`Server on port ${this.port} closed`);
+            });
+        }
     }
 
     /**

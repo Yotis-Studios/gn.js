@@ -57,14 +57,20 @@ function createBufferFromData(data) {
                 buffer = Buffer.concat([buffer, Buffer.from([0])]);
             }
             var strLen = buffer.length;
+            if (strLen > 65535) {
+                throw new RangeError(`String byte length ${strLen} exceeds maximum of 65535`);
+            }
             var strLenBuffer = Buffer.alloc(2);
             strLenBuffer.writeUInt16LE(strLen, 0);
             buffer = Buffer.concat([strLenBuffer, buffer]);
             break;
         case 'buffer':
             var bufLen = data.length;
-            var bufLenBuffer = Buffer.alloc(1);
-            bufLenBuffer.writeUInt8(bufLen, 0);
+            if (bufLen > 65535) {
+                throw new RangeError(`Buffer length ${bufLen} exceeds maximum of 65535`);
+            }
+            var bufLenBuffer = Buffer.alloc(2);
+            bufLenBuffer.writeUInt16LE(bufLen, 0);
             buffer = Buffer.concat([bufLenBuffer, data]);
             break;
         case 'undefined':
@@ -112,10 +118,13 @@ function determineType(data) {
         case 'string':
             return 9; // string
         case 'object':
+            if (data === null) {
+                return 11; // undefined
+            }
             if (data instanceof Buffer) {
                 return 10; // buffer
             }
-            break;
+            return 11; // undefined
         default:
             return 11; // undefined
     }  
@@ -137,6 +146,13 @@ function parseDataFromBuffer(buffer, index) {
     }
     const typeName = typeMap[type];
     index++;
+
+    const remaining = buffer.length - index;
+    const needed = sizeMap[typeName];
+    // For fixed-size types, check we have enough bytes
+    if (needed !== undefined && needed > 0 && remaining < needed) {
+        return { data: undefined, size: 0 };
+    }
 
     let data, size;
     switch (typeName) {
@@ -166,18 +182,22 @@ function parseDataFromBuffer(buffer, index) {
             data = buffer.readDoubleLE(index);
             break;
         case 'string':
+            if (remaining < 2) return { data: undefined, size: 0 };
             var strLen = buffer.readUInt16LE(index);
             index += 2;
+            if (buffer.length - index < strLen) return { data: undefined, size: 0 };
             // strip null terminator if present
             var strEnd = strLen > 0 && buffer[index + strLen - 1] === 0 ? strLen - 1 : strLen;
             data = buffer.toString('utf8', index, index + strEnd);
             size = strLen + 2;
             break;
         case 'buffer':
-            var bufLen = buffer.readUInt8(index);
-            index++;
+            if (remaining < 2) return { data: undefined, size: 0 };
+            var bufLen = buffer.readUInt16LE(index);
+            index += 2;
+            if (buffer.length - index < bufLen) return { data: undefined, size: 0 };
             data = buffer.subarray(index, index + bufLen);
-            size = bufLen + 1;
+            size = bufLen + 2;
             break;
         case 'undefined':
             data = undefined;

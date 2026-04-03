@@ -138,6 +138,17 @@ describe('Packet', () => {
         });
     });
 
+    describe('build overflow', () => {
+        test('throws RangeError when packet exceeds 65535 bytes', () => {
+            const packet = new Packet(1);
+            // Add enough data to exceed 65535 bytes total
+            for (let i = 0; i < 40000; i++) {
+                packet.add(i % 256); // u8 values, 2 bytes each (type + data)
+            }
+            expect(() => packet.build()).toThrow(RangeError);
+        });
+    });
+
     describe('load edge cases', () => {
         test('handles empty buffer gracefully', () => {
             const packet = new Packet();

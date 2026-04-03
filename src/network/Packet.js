@@ -70,6 +70,9 @@ class Packet {
         }
 
         // 2 bytes for size
+        if (size > 65535) {
+            throw new RangeError(`Packet size ${size} exceeds maximum of 65535 bytes`);
+        }
         const sizeBuffer = Buffer.alloc(2);
         sizeBuffer.writeUInt16LE(size);
 

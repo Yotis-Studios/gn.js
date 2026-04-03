@@ -38,9 +38,13 @@ describe('determineType', () => {
         expect(gmConvert.determineType(undefined)).toBe(11);
     });
 
-    test('null falls through to object branch', () => {
-        // null is typeof 'object' but not a Buffer, so falls through without returning
-        expect(gmConvert.determineType(null)).toBeUndefined();
+    test('null maps to undefined type', () => {
+        expect(gmConvert.determineType(null)).toBe(11); // undefined
+    });
+
+    test('non-Buffer objects map to undefined type', () => {
+        expect(gmConvert.determineType({})).toBe(11);
+        expect(gmConvert.determineType([])).toBe(11);
     });
 
     test('booleans treated as floats (typeof number, not integer)', () => {
@@ -161,6 +165,95 @@ describe('parseDataFromBuffer edge cases', () => {
 
     test('returns undefined for invalid type byte', () => {
         const buf = Buffer.from([255]); // invalid type
+        const result = gmConvert.parseDataFromBuffer(buf, 0);
+        expect(result.data).toBeUndefined();
+        expect(result.size).toBe(0);
+    });
+});
+
+describe('null and object handling', () => {
+    test('null roundtrips as undefined', () => {
+        const buf = gmConvert.createBufferFromData(null);
+        const result = gmConvert.parseDataFromBuffer(buf, 0);
+        expect(result.data).toBeUndefined();
+    });
+
+    test('plain object roundtrips as undefined', () => {
+        const buf = gmConvert.createBufferFromData({});
+        const result = gmConvert.parseDataFromBuffer(buf, 0);
+        expect(result.data).toBeUndefined();
+    });
+
+    test('array roundtrips as undefined', () => {
+        const buf = gmConvert.createBufferFromData([1, 2, 3]);
+        const result = gmConvert.parseDataFromBuffer(buf, 0);
+        expect(result.data).toBeUndefined();
+    });
+});
+
+describe('buffer type with large buffers', () => {
+    test('buffer > 255 bytes roundtrips correctly', () => {
+        const input = Buffer.alloc(300, 0xAB);
+        const buf = gmConvert.createBufferFromData(input);
+        const result = gmConvert.parseDataFromBuffer(buf, 0);
+        expect(Buffer.isBuffer(result.data)).toBe(true);
+        expect(result.data.length).toBe(300);
+        expect(Buffer.compare(result.data, input)).toBe(0);
+    });
+});
+
+describe('parseDataFromBuffer bounds checking', () => {
+    test('returns undefined for truncated u16', () => {
+        // type byte for u16 (1) + only 1 byte of data (needs 2)
+        const buf = Buffer.from([1, 0xFF]);
+        const result = gmConvert.parseDataFromBuffer(buf, 0);
+        expect(result.data).toBeUndefined();
+        expect(result.size).toBe(0);
+    });
+
+    test('returns undefined for truncated u32', () => {
+        // type byte for u32 (2) + only 2 bytes of data (needs 4)
+        const buf = Buffer.from([2, 0xFF, 0xFF]);
+        const result = gmConvert.parseDataFromBuffer(buf, 0);
+        expect(result.data).toBeUndefined();
+        expect(result.size).toBe(0);
+    });
+
+    test('returns undefined for truncated f64', () => {
+        // type byte for f64 (8) + only 4 bytes (needs 8)
+        const buf = Buffer.from([8, 0, 0, 0, 0]);
+        const result = gmConvert.parseDataFromBuffer(buf, 0);
+        expect(result.data).toBeUndefined();
+        expect(result.size).toBe(0);
+    });
+
+    test('returns undefined for truncated string length', () => {
+        // type byte for string (9) + only 1 byte (needs 2 for length prefix)
+        const buf = Buffer.from([9, 0x05]);
+        const result = gmConvert.parseDataFromBuffer(buf, 0);
+        expect(result.data).toBeUndefined();
+        expect(result.size).toBe(0);
+    });
+
+    test('returns undefined for string with length exceeding buffer', () => {
+        // type byte for string (9) + length says 100 but only 2 bytes of data
+        const buf = Buffer.from([9, 100, 0, 0x41, 0x42]);
+        const result = gmConvert.parseDataFromBuffer(buf, 0);
+        expect(result.data).toBeUndefined();
+        expect(result.size).toBe(0);
+    });
+
+    test('returns undefined for truncated buffer type', () => {
+        // type byte for buffer (10) + only 1 byte (needs 2 for length prefix)
+        const buf = Buffer.from([10, 0x05]);
+        const result = gmConvert.parseDataFromBuffer(buf, 0);
+        expect(result.data).toBeUndefined();
+        expect(result.size).toBe(0);
+    });
+
+    test('returns undefined for buffer with length exceeding data', () => {
+        // type byte for buffer (10) + length says 100 but only 2 bytes follow
+        const buf = Buffer.from([10, 100, 0, 0xAA, 0xBB]);
         const result = gmConvert.parseDataFromBuffer(buf, 0);
         expect(result.data).toBeUndefined();
         expect(result.size).toBe(0);
