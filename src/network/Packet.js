@@ -38,14 +38,16 @@ class Packet {
      * @returns {void}
      */
     load(data) {
+        if (data.length < 2) return;
         this.netId = data.readUInt16LE(0);
 
         if (data.length > 2) {
             let i = 2;
             while (i < data.length) {
                 const parse = gmConvert.parseDataFromBuffer(data, i);
+                if (parse.size === 0 && parse.data === undefined) break;
                 this.data.push(parse.data);
-                i += parse.size+1;
+                i += parse.size + 1;
             }
         }
     }
