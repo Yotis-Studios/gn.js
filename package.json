@@ -4,7 +4,7 @@
   "description": "Websocket framework for GameMaker and Node.js",
   "main": "src/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest"
   },
   "repository": {
     "type": "git",
@@ -20,6 +20,7 @@
     "ws": "^8.13.0"
   },
   "devDependencies": {
-    "eslint": "^8.46.0"
+    "eslint": "^8.46.0",
+    "jest": "^30.3.0"
   }
 }

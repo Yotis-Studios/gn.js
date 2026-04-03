@@ -45,6 +45,7 @@ class Server extends EventEmitter {
      */
     handleDisconnect(ws, code, message) {
         const connection = this.getConnectionByWebSocket(ws);
+        if (!connection) return;
         connection.code = code;
         connection.message = message;
         this.connections.delete(connection);
@@ -74,14 +75,16 @@ class Server extends EventEmitter {
         }
         // convert the message to a buffer
         message = Buffer.from(message);
-        // get packet size from message
-        const size = message.readUInt16LE(0);
-        // make new packet and load the net id and data limited to the provided size
-        const packet = new Packet();
-        packet.load(message.subarray(2, 2+size));
-
-        // emit the packet
-        this.emit('packet', connection, packet);
+        // parse all packets from the message
+        let offset = 0;
+        while (offset + 2 <= message.length) {
+            const size = message.readUInt16LE(offset);
+            if (size === 0 || offset + 2 + size > message.length) break;
+            const packet = new Packet();
+            packet.load(message.subarray(offset + 2, offset + 2 + size));
+            this.emit('packet', connection, packet);
+            offset += 2 + size;
+        }
     }
 
     /**

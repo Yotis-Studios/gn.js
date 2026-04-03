@@ -43,9 +43,12 @@ function createBufferFromData(data) {
             break;
         case 'f16':
         case 'f32':
-        case 'f64':
-            buffer = Buffer.alloc(typeSize); // 4 or 8
+            buffer = Buffer.alloc(typeSize); // 2 or 4
             buffer.writeFloatLE(data, 0);
+            break;
+        case 'f64':
+            buffer = Buffer.alloc(typeSize); // 8
+            buffer.writeDoubleLE(data, 0);
             break;
         case 'string':
             buffer = Buffer.from(data, 'utf8');
@@ -125,7 +128,13 @@ function determineType(data) {
  * @returns {object} object with data and size (number of bytes read)
  */
 function parseDataFromBuffer(buffer, index) {
+    if (index >= buffer.length) {
+        return { data: undefined, size: 0 };
+    }
     const type = buffer.readUInt8(index);
+    if (type >= typeMap.length) {
+        return { data: undefined, size: 0 };
+    }
     const typeName = typeMap[type];
     index++;
 
@@ -159,7 +168,9 @@ function parseDataFromBuffer(buffer, index) {
         case 'string':
             var strLen = buffer.readUInt16LE(index);
             index += 2;
-            data = buffer.toString('utf8', index, index + strLen);
+            // strip null terminator if present
+            var strEnd = strLen > 0 && buffer[index + strLen - 1] === 0 ? strLen - 1 : strLen;
+            data = buffer.toString('utf8', index, index + strEnd);
             size = strLen + 2;
             break;
         case 'buffer':

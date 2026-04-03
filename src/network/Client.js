@@ -36,13 +36,16 @@ class Client extends EventEmitter {
         this.ws.onmessage = (event) => {
             // convert the message to a buffer
             const data = Buffer.from(event.data);
-            // get packet size from message
-            const size = data.readUInt16LE(0);
-            // make new packet and load the net id and data limited to the provided size
-            const packet = new Packet();
-            packet.load(data.subarray(2, 2+size));
-            // emit the packet
-            this.emit('packet', packet);
+            // parse all packets from the message
+            let offset = 0;
+            while (offset + 2 <= data.length) {
+                const size = data.readUInt16LE(offset);
+                if (size === 0 || offset + 2 + size > data.length) break;
+                const packet = new Packet();
+                packet.load(data.subarray(offset + 2, offset + 2 + size));
+                this.emit('packet', packet);
+                offset += 2 + size;
+            }
         };
         this.ws.onclose = () => {
             this.connected = false;
@@ -77,7 +80,9 @@ class Client extends EventEmitter {
      * @returns {void}
      */
     disconnect() {
-        this.ws.end(1000, 'Client closed');
+        if (this.ws) {
+            this.ws.close(1000, 'Client closed');
+        }
     }
 
     /**
