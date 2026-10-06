@@ -38,22 +38,17 @@ describe('determineType', () => {
         expect(gmConvert.determineType(undefined)).toBe(11);
     });
 
-    test('null falls through to object branch', () => {
-        // null is typeof 'object' but not a Buffer, so falls through without returning
-        expect(gmConvert.determineType(null)).toBeUndefined();
+    test('null and non-Buffer objects are undefined', () => {
+        expect(gmConvert.determineType(null)).toBe(11);
+        expect(gmConvert.determineType({})).toBe(11);
+        expect(gmConvert.createBufferFromData(null)).toEqual(Buffer.from([11]));
     });
 
-    test('booleans treated as floats (typeof number, not integer)', () => {
-        // Boolean true/false: typeof is 'number' case but Number.isInteger(true) is true
-        // Actually: typeof true === 'boolean', which matches 'number'|'boolean' case
-        // But Number.isInteger(true) === true, so true(1) -> u8, false(0) -> u8
-        // Let's verify actual behavior:
-        const trueType = gmConvert.determineType(true);
-        const falseType = gmConvert.determineType(false);
-        // boolean goes into the number/boolean case but Number.isInteger(true) behavior
-        // depends on JS engine — just snapshot actual behavior
-        expect(trueType).toBe(7);  // f32 — booleans aren't Number.isInteger
-        expect(falseType).toBe(7); // f32
+    test('booleans are u8 1/0 (matches gn.hml)', () => {
+        expect(gmConvert.determineType(true)).toBe(0);
+        expect(gmConvert.determineType(false)).toBe(0);
+        expect(gmConvert.createBufferFromData(true)).toEqual(Buffer.from([0, 1]));
+        expect(gmConvert.createBufferFromData(false)).toEqual(Buffer.from([0, 0]));
     });
 });
 

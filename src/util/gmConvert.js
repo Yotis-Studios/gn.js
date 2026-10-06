@@ -9,6 +9,8 @@ const sizeMap = {u8: 1, u16: 2, u32: 4, s8: 1, s16: 2, s32: 4, f16: 2, f32: 4, f
  * @returns {Buffer} The buffer of binary data
  */
 function createBufferFromData(data) {
+    // booleans go on the wire as u8 1/0 (matches gn.hml)
+    if (typeof data === 'boolean') data = data ? 1 : 0;
     const type = determineType(data);
     const typeName = typeMap[type];
     const typeSize = sizeMap[typeName];
@@ -82,8 +84,9 @@ function createBufferFromData(data) {
  */
 function determineType(data) {
     switch (typeof data) {
-        case 'number':
         case 'boolean':
+            return 0; // u8 (1/0)
+        case 'number':
             if (Number.isInteger(data)) {
                 if (data >= 0) {
                     if (data < 256) {
@@ -115,7 +118,7 @@ function determineType(data) {
             if (data instanceof Buffer) {
                 return 10; // buffer
             }
-            break;
+            return 11; // undefined (null, arrays, plain objects)
         default:
             return 11; // undefined
     }  
