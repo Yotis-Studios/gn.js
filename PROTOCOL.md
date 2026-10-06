@@ -197,7 +197,20 @@ A packet with `netId` 7 and the values
 Two packets can share one WebSocket message by concatenating them:
 `02 00 01 00 02 00 02 00` delivers empty packets with `netId` 1 and then 2.
 
-## 8. Implementation checklist
+## 8. Conformance vectors
+
+[`test/vectors/protocol.json`](test/vectors/protocol.json) holds the test
+vectors every implementation should pass:
+
+- `encode`: build a packet from a `netId` and values; the bytes must match exactly.
+- `encode_errors`: packets an encoder must refuse to build.
+- `decode`: payloads (including malformed ones) and the values they must decode to.
+- `frames`: WebSocket messages and the packets they must split into.
+
+gn.js runs them in `test/vectors.test.js`. Ports should copy the file and run
+the same cases, rather than keeping their own copies of the rules.
+
+## 9. Implementation checklist
 
 - [ ] Use little-endian for every multi-byte field.
 - [ ] Prefix every packet with its u16 payload size; accept several packets per
