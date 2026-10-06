@@ -13,6 +13,15 @@
 
 The binary wire format (framing, type ids, encoding and decoding rules) is specified in [PROTOCOL.md](PROTOCOL.md).
 
+## Known limitations
+
+- **Large numbers can't be sent.** JavaScript has one number type, so gn.js
+  sends every whole number as an integer (u8 through s32) and throws if it is
+  outside the 32-bit range. That includes values like `Date.now()` and any
+  double larger than 2^53 (all of which are whole numbers). A thrown error in
+  a `packet` handler crashes the Node process. Typed ports (gn.hml, gn.c) don't
+  have this problem: they send large floats as f64.
+
 ## Installation
 
 You can install `gn.js` using npm:

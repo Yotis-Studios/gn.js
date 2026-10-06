@@ -139,6 +139,11 @@ same packet encodes to the same bytes everywhere. Note that `f32` keeps only ~7 
 digits: `0.1` is sent as `07 cd cc cc 3d` and decodes as `0.10000000149011612`.
 If you need full precision for small fractional values, scale them to integers.
 
+gn.js can't tell an integral double from an integer, so it applies the
+integer rules to every whole number and refuses anything outside the 32-bit
+range (e.g. `Date.now()`, or any double above 2^53). Typed implementations send
+those as `f64`.
+
 **Booleans** become `u8` `1` or `0`. Receivers get a number, not a boolean.
 
 **Strings** become `string`. **Buffers** (Node `Buffer`, Hemlock `buffer`)
