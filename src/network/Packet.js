@@ -45,7 +45,7 @@ class Packet {
             let i = 2;
             while (i < data.length) {
                 const parse = gmConvert.parseDataFromBuffer(data, i);
-                if (parse.size === 0 && parse.data === undefined) break;
+                if (parse.size < 0) break; // malformed or truncated, stop parsing
                 this.data.push(parse.data);
                 i += parse.size + 1;
             }

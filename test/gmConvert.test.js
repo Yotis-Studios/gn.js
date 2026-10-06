@@ -151,14 +151,57 @@ describe('parseDataFromBuffer edge cases', () => {
         const buf = Buffer.from([]);
         const result = gmConvert.parseDataFromBuffer(buf, 0);
         expect(result.data).toBeUndefined();
-        expect(result.size).toBe(0);
+        expect(result.size).toBe(-1);
     });
 
     test('returns undefined for invalid type byte', () => {
         const buf = Buffer.from([255]); // invalid type
         const result = gmConvert.parseDataFromBuffer(buf, 0);
         expect(result.data).toBeUndefined();
-        expect(result.size).toBe(0);
+        expect(result.size).toBe(-1);
+    });
+});
+
+describe('parseDataFromBuffer malformed input', () => {
+    const truncated = {
+        u8: [0], u16: [1, 0], u32: [2, 0, 0, 0], s8: [3], s16: [4, 0], s32: [5, 0, 0, 0],
+        f16: [6, 0], f32: [7, 0, 0, 0], f64: [8, 0, 0, 0, 0, 0, 0, 0],
+        'string length': [9, 5], 'string body': [9, 5, 0, 97, 98], 'buffer length': [10],
+        'buffer body': [10, 4, 1, 2],
+    };
+    for (const [name, bytes] of Object.entries(truncated)) {
+        test(`truncated ${name} fails without throwing`, () => {
+            const result = gmConvert.parseDataFromBuffer(Buffer.from(bytes), 0);
+            expect(result.size).toBe(-1);
+        });
+    }
+
+    test('undefined parses with size 0 (not a failure)', () => {
+        const result = gmConvert.parseDataFromBuffer(Buffer.from([11]), 0);
+        expect(result).toEqual({ data: undefined, size: 0 });
+    });
+});
+
+describe('f16 decoding', () => {
+    const f16 = (bits) => gmConvert.parseDataFromBuffer(Buffer.from([6, bits & 0xff, bits >> 8]), 0);
+    test('consumes 2 bytes', () => {
+        expect(f16(0x3c00).size).toBe(2);
+    });
+    test('decodes values', () => {
+        expect(f16(0x3c00).data).toBe(1);
+        expect(f16(0xc000).data).toBe(-2);
+        expect(f16(0x3555).data).toBeCloseTo(0.333, 3);
+        expect(f16(0x7bff).data).toBe(65504);
+        expect(f16(0x0001).data).toBe(Math.pow(2, -24));
+        expect(f16(0x7c00).data).toBe(Infinity);
+        expect(f16(0xfc00).data).toBe(-Infinity);
+        expect(f16(0x7e00).data).toBeNaN();
+    });
+    test('f16 followed by more data parses in a packet', () => {
+        const Packet = require('../src/network/Packet');
+        const p = new Packet();
+        p.load(Buffer.from([1, 0, 6, 0x00, 0x3c, 0, 7]));
+        expect(p.data).toEqual([1, 7]);
     });
 });
 
@@ -172,7 +215,7 @@ describe('multi-value buffer parsing', () => {
         let i = 0;
         while (i < combined.length) {
             const result = gmConvert.parseDataFromBuffer(combined, i);
-            if (result.size === 0 && result.data === undefined) break;
+            if (result.size < 0) break;
             parsed.push(result.data);
             i += result.size + 1; // +1 for type byte
         }

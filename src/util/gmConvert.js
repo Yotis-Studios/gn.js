@@ -125,69 +125,74 @@ function determineType(data) {
 }
 
 /**
+ * Decodes an IEEE 754 half-precision float
+ * @param {number} h 16-bit half float bits
+ * @returns {number}
+ */
+function halfToFloat(h) {
+    const sign = (h & 0x8000) ? -1 : 1;
+    const exp = (h >> 10) & 0x1f;
+    const frac = h & 0x3ff;
+    if (exp === 0) return sign * frac * Math.pow(2, -24); // subnormal
+    if (exp === 31) return frac ? NaN : sign * Infinity;
+    return sign * Math.pow(2, exp - 15) * (1 + frac / 1024);
+}
+
+// result returned when data can't be parsed (out of bounds, truncated or unknown type)
+const PARSE_FAIL = { data: undefined, size: -1 };
+
+/**
  * Used for parsing binary data from a packet buffer
  * @param {Buffer} buffer binary data
  * @param {number} index index to start reading from
- * @returns {object} object with data and size (number of bytes read)
+ * @returns {object} object with data and size (number of bytes read after the type byte),
+ *                   size is -1 if the data could not be parsed
  */
 function parseDataFromBuffer(buffer, index) {
-    if (index >= buffer.length) {
-        return { data: undefined, size: 0 };
-    }
+    if (index >= buffer.length) return PARSE_FAIL;
     const type = buffer.readUInt8(index);
-    if (type >= typeMap.length) {
-        return { data: undefined, size: 0 };
-    }
+    if (type >= typeMap.length) return PARSE_FAIL;
     const typeName = typeMap[type];
     index++;
+    const remaining = buffer.length - index;
 
     let data, size;
     switch (typeName) {
-        case 'u8':
-            data = buffer.readUInt8(index);
-            break;
-        case 'u16':
-            data = buffer.readUInt16LE(index);
-            break;
-        case 'u32':
-            data = buffer.readUInt32LE(index);
-            break;
-        case 's8':
-            data = buffer.readInt8(index);
-            break;
-        case 's16':
-            data = buffer.readInt16LE(index);
-            break;
-        case 's32':
-            data = buffer.readInt32LE(index);
-            break;
-        case 'f16':
-        case 'f32':
-            data = buffer.readFloatLE(index);
-            break;
-        case 'f64':
-            data = buffer.readDoubleLE(index);
-            break;
-        case 'string':
-            var strLen = buffer.readUInt16LE(index);
+        case 'string': {
+            if (remaining < 2) return PARSE_FAIL;
+            const strLen = buffer.readUInt16LE(index);
+            if (remaining < 2 + strLen) return PARSE_FAIL;
             index += 2;
             // strip null terminator if present
-            var strEnd = strLen > 0 && buffer[index + strLen - 1] === 0 ? strLen - 1 : strLen;
+            const strEnd = strLen > 0 && buffer[index + strLen - 1] === 0 ? strLen - 1 : strLen;
             data = buffer.toString('utf8', index, index + strEnd);
             size = strLen + 2;
             break;
-        case 'buffer':
-            var bufLen = buffer.readUInt8(index);
+        }
+        case 'buffer': {
+            if (remaining < 1) return PARSE_FAIL;
+            const bufLen = buffer.readUInt8(index);
+            if (remaining < 1 + bufLen) return PARSE_FAIL;
             index++;
             data = buffer.subarray(index, index + bufLen);
             size = bufLen + 1;
             break;
-        case 'undefined':
-            data = undefined;
-            break;
-    }
-    if (size === undefined) {
-        size = sizeMap[typeName];
+        }
+        default:
+            size = sizeMap[typeName];
+            if (remaining < size) return PARSE_FAIL;
+            switch (typeName) {
+                case 'u8': data = buffer.readUInt8(index); break;
+                case 'u16': data = buffer.readUInt16LE(index); break;
+                case 'u32': data = buffer.readUInt32LE(index); break;
+                case 's8': data = buffer.readInt8(index); break;
+                case 's16': data = buffer.readInt16LE(index); break;
+                case 's32': data = buffer.readInt32LE(index); break;
+                case 'f16': data = halfToFloat(buffer.readUInt16LE(index)); break;
+                case 'f32': data = buffer.readFloatLE(index); break;
+                case 'f64': data = buffer.readDoubleLE(index); break;
+                case 'undefined': data = undefined; break;
+            }
     }
     return {data, size};
 }

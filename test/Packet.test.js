@@ -46,6 +46,30 @@ describe('Packet', () => {
         });
     });
 
+    describe('load robustness', () => {
+        test('undefined in the middle does not truncate the packet', () => {
+            const original = new Packet(1);
+            original.add([1, undefined, 2, 'x']);
+            const loaded = new Packet();
+            loaded.load(original.build().subarray(2));
+            expect(loaded.data).toEqual([1, undefined, 2, 'x']);
+        });
+
+        test('truncated data keeps values before it and does not throw', () => {
+            const loaded = new Packet();
+            // netId 1, u8 7, then a u16 with only 1 byte
+            loaded.load(Buffer.from([1, 0, 0, 7, 1, 5]));
+            expect(loaded.netId).toBe(1);
+            expect(loaded.data).toEqual([7]);
+        });
+
+        test('string with length past the end does not throw', () => {
+            const loaded = new Packet();
+            loaded.load(Buffer.from([1, 0, 9, 0xff, 0xff, 97]));
+            expect(loaded.data).toEqual([]);
+        });
+    });
+
     describe('build and load roundtrip', () => {
         test('empty packet roundtrip', () => {
             const original = new Packet(5);
