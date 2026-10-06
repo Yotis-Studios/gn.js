@@ -133,7 +133,9 @@ Hemlock: any integer type):
 
 **Non-integer numbers** (including NaN and ±Infinity): `f32` if
 `|value| <= 16777216` (2^24), otherwise `f64`. NaN and ±Infinity fail that
-comparison and are sent as `f64`. Note that `f32` keeps only ~7 significant
+comparison and are sent as `f64`. NaN is always written as the canonical
+quiet NaN `00 00 00 00 00 00 f8 7f` (whatever its sign or payload bits), so the
+same packet encodes to the same bytes everywhere. Note that `f32` keeps only ~7 significant
 digits: `0.1` is sent as `07 cd cc cc 3d` and decodes as `0.10000000149011612`.
 If you need full precision for small fractional values, scale them to integers.
 
