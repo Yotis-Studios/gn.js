@@ -9,6 +9,10 @@
 - Support for both server-side and client-side networking.
 - Designed for compatibility with GameMaker.
 
+## Protocol
+
+The binary wire format (framing, type ids, encoding and decoding rules) is specified in [PROTOCOL.md](PROTOCOL.md).
+
 ## Installation
 
 You can install `gn.js` using npm:
